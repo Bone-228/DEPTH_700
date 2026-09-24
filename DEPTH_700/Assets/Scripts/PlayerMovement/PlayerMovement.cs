@@ -1,6 +1,6 @@
 using UnityEngine;
-
-public class PlayerMovement : MonoBehaviour
+using Unity.Netcode;
+public class PlayerMovement : NetworkBehaviour
 {
     [Header("Movement")]
     public float moveSpeed;
@@ -30,6 +30,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        if (!IsOwner)
+            return;
+
         //check if player is grounded
         _grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround); 
 
@@ -47,6 +50,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (!IsOwner)
+            return;
+
         MovePlayer();
     }
 

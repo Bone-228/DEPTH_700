@@ -26,4 +26,20 @@ public class SessionManager : MonoBehaviour
             Debug.LogError($"Failed to create session: {e}");
         }
     }
+
+    public async void JoinSession(string sessionCode)
+    {
+        try
+        {
+            currentSession =
+                await MultiplayerService.Instance.JoinSessionByCodeAsync(sessionCode);
+
+            Debug.Log("Successfully joined session!");
+            Debug.Log($"Joined Session Code: {currentSession.Code}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to join session: {e}");
+        }
+    }
 }
