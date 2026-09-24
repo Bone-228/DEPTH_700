@@ -20,6 +20,8 @@ public class SessionManager : MonoBehaviour
 
             Debug.Log("Session created!");
             Debug.Log($"Session Code: {currentSession.Code}");
+
+            EnterGameplay();
         }
         catch (Exception e)
         {
@@ -36,10 +38,18 @@ public class SessionManager : MonoBehaviour
 
             Debug.Log("Successfully joined session!");
             Debug.Log($"Joined Session Code: {currentSession.Code}");
+
+            EnterGameplay();
         }
         catch (Exception e)
         {
             Debug.LogError($"Failed to join session: {e}");
         }
+    }
+
+    public void EnterGameplay()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 }
