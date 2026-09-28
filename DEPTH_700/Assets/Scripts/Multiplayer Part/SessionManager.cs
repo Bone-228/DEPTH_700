@@ -49,8 +49,8 @@ public class SessionManager : MonoBehaviour
 
     public void EnterGameplay()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     public async void LeaveSession()
