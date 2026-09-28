@@ -1,11 +1,9 @@
+﻿using Unity.Netcode;
 using UnityEngine;
-using Unity.Netcode;
 
 public class PlayerSpawnManager : MonoBehaviour
 {
     public Transform[] spawnPoints;
-
-    private int nextSpawnIndex = 0;
 
     private void Start()
     {
@@ -29,9 +27,65 @@ public class PlayerSpawnManager : MonoBehaviour
     private void OnClientConnected(ulong clientId)
     {
         Debug.Log($"Player connected! Client ID: {clientId}");
+
+        StartCoroutine(SpawnPlayerWhenReady(clientId));
     }
 
-    public Transform GetNextSpawnPoint()
+    private System.Collections.IEnumerator SpawnPlayerWhenReady(ulong clientId)
+    {
+        while (true)
+        {
+            if (NetworkManager.Singleton == null)
+                yield break;
+
+            if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(
+                    clientId,
+                    out NetworkClient client))
+            {
+                yield return null;
+                continue;
+            }
+
+            if (client.PlayerObject != null)
+                break;
+
+            yield return null;
+        }
+
+        NetworkObject playerObject =
+            NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject;
+
+        if (playerObject == null)
+        {
+            Debug.LogError(
+                $"PlayerObject not found for Client ID {clientId}"
+            );
+
+            yield break;
+        }
+
+        // Работаем только со своим Player
+        if (!playerObject.IsOwner)
+            yield break;
+
+        Transform spawnPoint = GetSpawnPoint(clientId);
+
+        if (spawnPoint == null)
+            yield break;
+
+        playerObject.transform.SetPositionAndRotation(
+            spawnPoint.position,
+            spawnPoint.rotation
+        );
+
+        Debug.Log(
+            $"LOCAL Player {clientId} spawned at " +
+            $"{spawnPoint.name} | " +
+            $"Position: {spawnPoint.position}"
+        );
+    }
+
+    private Transform GetSpawnPoint(ulong clientId)
     {
         if (spawnPoints == null || spawnPoints.Length == 0)
         {
@@ -39,15 +93,8 @@ public class PlayerSpawnManager : MonoBehaviour
             return null;
         }
 
-        Transform spawnPoint = spawnPoints[nextSpawnIndex];
+        int index = (int)clientId % spawnPoints.Length;
 
-        nextSpawnIndex++;
-
-        if (nextSpawnIndex >= spawnPoints.Length)
-        {
-            nextSpawnIndex = 0;
-        }
-
-        return spawnPoint;
+        return spawnPoints[index];
     }
 }

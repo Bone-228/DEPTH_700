@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+
 public class PlayerMovement : NetworkBehaviour
 {
     [Header("Movement")]
@@ -28,13 +29,49 @@ public class PlayerMovement : NetworkBehaviour
         _rb.freezeRotation = true;
     }
 
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        if (!IsOwner)
+            return;
+
+        if (SpawnPointManager.Instance == null)
+        {
+            Debug.LogError("SpawnPointManager was not found!");
+            return;
+        }
+
+        Transform spawnPoint =
+            SpawnPointManager.Instance.GetSpawnPoint(OwnerClientId);
+
+        if (spawnPoint == null)
+            return;
+
+        transform.SetPositionAndRotation(
+            spawnPoint.position,
+            spawnPoint.rotation
+        );
+
+        Debug.Log(
+            $"Player {OwnerClientId} spawned at " +
+            $"{spawnPoint.name} | " +
+            $"Position: {spawnPoint.position}"
+        );
+    }
+
     private void Update()
     {
         if (!IsOwner)
             return;
 
-        //check if player is grounded
-        _grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround); 
+        // Check if player is grounded
+        _grounded = Physics.Raycast(
+            transform.position,
+            Vector3.down,
+            playerHeight * 0.5f + 0.2f,
+            whatIsGround
+        );
 
         MyInput();
 
@@ -42,8 +79,8 @@ public class PlayerMovement : NetworkBehaviour
         {
             _rb.linearDamping = groundDrag;
         }
-        else 
-        { 
+        else
+        {
             _rb.linearDamping = 0;
         }
     }
@@ -56,15 +93,21 @@ public class PlayerMovement : NetworkBehaviour
         MovePlayer();
     }
 
-    private void MyInput() 
-    { 
+    private void MyInput()
+    {
         _horizontalInput = Input.GetAxisRaw("Horizontal");
         _verticalInput = Input.GetAxisRaw("Vertical");
     }
 
-    private void MovePlayer() 
-    { 
-        _moveDirection = orientation.forward * _verticalInput + orientation.right * _horizontalInput;
-        _rb.AddForce(_moveDirection.normalized * moveSpeed * 10f , ForceMode.Force);
+    private void MovePlayer()
+    {
+        _moveDirection =
+            orientation.forward * _verticalInput +
+            orientation.right * _horizontalInput;
+
+        _rb.AddForce(
+            _moveDirection.normalized * moveSpeed * 10f,
+            ForceMode.Force
+        );
     }
 }
