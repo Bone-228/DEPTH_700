@@ -52,4 +52,26 @@ public class SessionManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
+
+    public async void LeaveSession()
+    {
+        if (currentSession == null)
+            return;
+
+        try
+        {
+            await currentSession.LeaveAsync();
+
+            currentSession = null;
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
+            Debug.Log("Successfully left session!");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to leave session: {e}");
+        }
+    }
 }
