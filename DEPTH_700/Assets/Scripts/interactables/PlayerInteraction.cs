@@ -4,7 +4,7 @@ using UnityEngine;
 public class PlayerInteraction : NetworkBehaviour
 {
     [SerializeField] private Camera interactionCamera;
-    [SerializeField] private float interactionDistance = 3f;
+    [SerializeField, Min(0.1f)] private float interactionDistance = 3f;
     [SerializeField] private LayerMask interactionLayers = ~0;
     [SerializeField] private KeyCode interactKey = KeyCode.E;
     [SerializeField] private KeyCode dropKey = KeyCode.G;
@@ -21,7 +21,7 @@ public class PlayerInteraction : NetworkBehaviour
         if (!IsOwner)
             return;
 
-        // Your project has a separate scene camera tagged MainCamera.
+        // The project camera is a separate scene object tagged MainCamera.
         if (interactionCamera == null)
             interactionCamera = Camera.main;
 
@@ -40,8 +40,21 @@ public class PlayerInteraction : NetworkBehaviour
         if (Input.GetKeyDown(interactKey))
             TryInteract();
 
-        if (Input.GetKeyDown(dropKey) && inventory != null)
-            inventory.RequestDrop();
+        if (inventory == null)
+            return;
+
+        if (Input.GetKeyDown(dropKey))
+        {
+            Vector3 viewDirection = interactionCamera != null
+                ? interactionCamera.transform.forward
+                : transform.forward;
+            inventory.RequestDropHeldItem(viewDirection);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha1)) inventory.RequestSelectSlot(0);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) inventory.RequestSelectSlot(1);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) inventory.RequestSelectSlot(2);
+        if (Input.GetKeyDown(KeyCode.Alpha4)) inventory.RequestSelectSlot(3);
     }
 
     private void TryInteract()
@@ -57,9 +70,7 @@ public class PlayerInteraction : NetworkBehaviour
         if (!Physics.Raycast(ray, out RaycastHit hit, interactionDistance, interactionLayers))
             return;
 
-        IInteractable interactable =
-            hit.collider.GetComponentInParent<IInteractable>();
-
+        IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
         if (interactable == null)
             return;
 
@@ -69,7 +80,7 @@ public class PlayerInteraction : NetworkBehaviour
 
     public void RequestPickup(WorldPickup pickup)
     {
-        if (!IsOwner || pickup == null || !pickup.IsSpawned)
+        if (!IsOwner || !IsSpawned || pickup == null || !pickup.IsSpawned)
             return;
 
         RequestPickupServerRpc(new NetworkObjectReference(pickup.NetworkObject));
@@ -78,22 +89,18 @@ public class PlayerInteraction : NetworkBehaviour
     [ServerRpc]
     private void RequestPickupServerRpc(NetworkObjectReference pickupReference)
     {
-        if (inventory == null)
-            return;
-
-        if (!pickupReference.TryGet(out NetworkObject pickupObject))
+        if (inventory == null || !pickupReference.TryGet(out NetworkObject pickupObject))
             return;
 
         WorldPickup pickup = pickupObject.GetComponent<WorldPickup>();
-
-        if (pickup == null || !pickup.IsSpawned)
+        if (pickup == null || !pickup.IsSpawned || pickup.IsHeld)
             return;
 
-        // Check the distance again on the server.
+        // Validate distance on the server so clients can't pick up remote items.
         if (Vector3.Distance(transform.position, pickup.transform.position) >
             interactionDistance + 0.5f)
             return;
 
-        inventory.TryStoreOnServer(pickup);
+        inventory.TryPickUpToHandsOnServer(pickup);
     }
 }

@@ -8,6 +8,7 @@ public class PlayerCam : MonoBehaviour
     public float sensY;
 
     private Transform orientation;
+    private Transform playerRoot;
 
     float _xRotation;
     float _yRotation;
@@ -20,7 +21,7 @@ public class PlayerCam : MonoBehaviour
 
     private void Update()
     {
-        if (orientation == null)
+        if (orientation == null || playerRoot == null)
         {
             FindLocalPlayerOrientation();
             return;
@@ -36,7 +37,9 @@ public class PlayerCam : MonoBehaviour
 
         transform.rotation = Quaternion.Euler(_xRotation, _yRotation, 0);
 
-        orientation.rotation = Quaternion.Euler(0, _yRotation, 0);
+        Quaternion yawRotation = Quaternion.Euler(0, _yRotation, 0);
+        playerRoot.rotation = yawRotation;
+        orientation.rotation = yawRotation;
     }
 
     private void FindLocalPlayerOrientation()
@@ -62,6 +65,7 @@ public class PlayerCam : MonoBehaviour
             return;
         }
 
+        playerRoot = localPlayer.transform;
         orientation = playerMovement.orientation;
 
         if (orientation == null)
@@ -69,6 +73,11 @@ public class PlayerCam : MonoBehaviour
             Debug.LogError(
                 "Orientation is not assigned in PlayerMovement!"
             );
+            playerRoot = null;
+            return;
         }
+
+        // Start from the player's spawn heading rather than snapping to world zero.
+        _yRotation = playerRoot.eulerAngles.y;
     }
 }
