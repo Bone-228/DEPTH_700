@@ -5,6 +5,7 @@ using Unity.Services.Multiplayer;
 public class SessionManager : MonoBehaviour
 {
     private ISession currentSession;
+    private bool joinInProgress;
 
     public async void CreateSession()
     {
@@ -31,19 +32,47 @@ public class SessionManager : MonoBehaviour
 
     public async void JoinSession(string sessionCode)
     {
+        if (joinInProgress)
+            return;
+
+        string normalizedCode = sessionCode?.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(normalizedCode))
+        {
+            Debug.LogWarning("Enter a session code before joining.");
+            return;
+        }
+
+        joinInProgress = true;
+
         try
         {
-            currentSession =
-                await MultiplayerService.Instance.JoinSessionByCodeAsync(sessionCode);
+            ISession joinedSession =
+                await MultiplayerService.Instance.JoinSessionByCodeAsync(normalizedCode);
+
+            currentSession = joinedSession;
 
             Debug.Log("Successfully joined session!");
             Debug.Log($"Joined Session Code: {currentSession.Code}");
 
             EnterGameplay();
         }
+        catch (SessionException e) when (
+            e.Error == SessionError.SessionNotFound ||
+            e.Error == SessionError.InvalidParameter)
+        {
+            Debug.LogWarning("Could not join: the session code is incorrect, expired, or the session is closed.");
+        }
+        catch (SessionException e)
+        {
+            Debug.LogError($"Failed to join session ({e.Error}): {e.Message}");
+        }
         catch (Exception e)
         {
             Debug.LogError($"Failed to join session: {e}");
+        }
+        finally
+        {
+            joinInProgress = false;
         }
     }
 

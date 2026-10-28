@@ -1,4 +1,5 @@
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 
 public class WorldPickup : NetworkBehaviour, IInteractable
@@ -16,6 +17,7 @@ public class WorldPickup : NetworkBehaviour, IInteractable
     private Rigidbody[] itemBodies;
     private bool[] bodyKinematicDefaults;
     private bool[] bodyGravityDefaults;
+    private NetworkTransform itemNetworkTransform;
 
     public string ItemId => itemId;
     public bool IsHeld => isHeld.Value;
@@ -24,6 +26,13 @@ public class WorldPickup : NetworkBehaviour, IInteractable
     private void Awake()
     {
         CachePhysicsComponents();
+
+        itemNetworkTransform = GetComponent<NetworkTransform>();
+        if (itemNetworkTransform != null)
+        {
+            // Clear pending world-space interpolation when this object is attached to a player.
+            itemNetworkTransform.SwitchTransformSpaceWhenParented = true;
+        }
     }
 
     public override void OnNetworkSpawn()
